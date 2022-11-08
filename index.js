@@ -15,11 +15,18 @@ const client = new MongoClient(uri);
 async function run() {
   try {
     const servicesCollection = client.db("ToothFixers").collection("Services");
+    const reviewsCollection = client.db("ToothFixers").collection("Reviews");
 
     // create data
     app.post("/service", async (req, res) => {
       const service = req.body;
       const result = await servicesCollection.insertOne(service);
+      res.send(result);
+    });
+
+    app.post("/review", async (req, res) => {
+      const review = req.body;
+      const result = await reviewsCollection.insertOne(review);
       res.send(result);
     });
 
