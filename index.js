@@ -83,7 +83,7 @@ async function run() {
       const option = { upsert: true };
       const updateReview = {
         $set: {
-          review,
+          review: review.newReview,
         },
       };
       const result = await reviewsCollection.updateOne(
