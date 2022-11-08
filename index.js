@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const { MongoClient, ObjectId } = require("mongodb");
+const jwt = require("jsonwebtoken");
 require("dotenv").config();
 const app = express();
 const port = process.env.PORT || 5000;
@@ -11,6 +12,21 @@ app.use(express.json());
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.grcofim.mongodb.net/?retryWrites=true&w=majority`;
 const client = new MongoClient(uri);
+
+function verifyJWT(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    return res.status(401).send({ message: "unatuhorized access" });
+  }
+  const token = authHeader.split(" ")[1];
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, function (err, decoded) {
+    if (err) {
+      return res.status(401).send({ message: "unatuhorized access" });
+    }
+    req.decoded = decoded;
+    next();
+  });
+}
 
 async function run() {
   try {
@@ -28,6 +44,14 @@ async function run() {
       const review = req.body;
       const result = await reviewsCollection.insertOne(review);
       res.send(result);
+    });
+
+    app.post("/jwt", (req, res) => {
+      const user = req.body;
+      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
+        expiresIn: "10h",
+      });
+      res.send({ token });
     });
 
     // read data
@@ -60,8 +84,12 @@ async function run() {
       res.send(result);
     });
 
-    app.get("/reviews", async (req, res) => {
+    app.get("/reviews", verifyJWT, async (req, res) => {
+      const decoded = req.decoded;
       const email = req.query.email;
+      if (decoded.email !== email) {
+        res.status(401).send({ message: "unauthorized access" });
+      }
       const query = { email: email };
       const cursor = reviewsCollection.find(query).sort({ time: -1 });
       const result = await cursor.toArray();
