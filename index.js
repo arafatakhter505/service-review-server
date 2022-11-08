@@ -1,6 +1,6 @@
 const express = require("express");
 const cors = require("cors");
-const { MongoClient } = require("mongodb");
+const { MongoClient, ObjectId } = require("mongodb");
 require("dotenv").config();
 const app = express();
 const port = process.env.PORT || 5000;
@@ -20,6 +20,28 @@ async function run() {
     app.post("/service", async (req, res) => {
       const service = req.body;
       const result = await servicesCollection.insertOne(service);
+      res.send(result);
+    });
+
+    // read data
+    app.get("/services", async (req, res) => {
+      const query = {};
+      const cursor = servicesCollection.find(query);
+      const result = await cursor.toArray();
+      res.send(result);
+    });
+
+    app.get("/homeservices", async (req, res) => {
+      const query = {};
+      const cursor = servicesCollection.find(query);
+      const result = await cursor.limit(3).toArray();
+      res.send(result);
+    });
+
+    app.get("/services/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: ObjectId(id) };
+      const result = await servicesCollection.findOne(filter);
       res.send(result);
     });
   } catch (error) {
